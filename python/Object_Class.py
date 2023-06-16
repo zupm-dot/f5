@@ -36,7 +36,3 @@ class Virtual_server(BigIP_Object):
         self.pool = pool
         self.profiles = profiles
         self.addr_translate = addr_translate
-
-
-x = Node("pool-default", "Common", "HTTPS")
-print(x.monitor)

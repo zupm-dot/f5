@@ -1,23 +1,23 @@
-class BIGIP_OBJECT:
+class BigIP_Object:
     def __init__(self, name, partition):
         self.name = name
         self.partition = partition
 
 
-class Node(BIGIP_OBJECT):
+class Node(BigIP_Object):
     def __init__(self, name, partition, address, monitor=None):
         self.address = address
         self.monitor = monitor
 
 
-class Monitor(BIGIP_OBJECT):
+class Monitor(BigIP_Object):
     def __init__(self, name, partition, monitor, send=None, interval=None):
         self.monitor = monitor
         self.send = send
         self.interval = interval
 
 
-class Pool(BIGIP_OBJECT):
+class Pool(BigIP_Object):
     def __init__(
         self,
         name,
@@ -30,7 +30,7 @@ class Pool(BIGIP_OBJECT):
         self.member_name
 
 
-class Virtual_server(BIGIP_OBJECT):
+class Virtual_server(BigIP_Object):
     def __init__(self, name, partition, protocol, pool, profiles, addr_translate):
         self.protocol = protocol
         self.pool = pool

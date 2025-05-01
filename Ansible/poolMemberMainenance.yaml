@@ -10,11 +10,15 @@
     - name: ansible_password
       prompt: Password
       private: yes
-
-  collections:
-    - f5networks.f5_modules
-
-
+      
+  vars:
+    provider:
+      user: "{{ ansible_user }}"
+      password: "{{ ansible_password }}"
+      server: "{{ inventory_hostname }}"
+      validate_certs: no
+      server_port: 443
+ 
   ##### begin variable declaration #####
   group_vars:
     pool_members:
@@ -31,6 +35,9 @@
           port: 443
           state: enabled # options: enabled, disabled, forced_offline
   ##### end variable declaration #####
+
+  collections:
+    - f5networks.f5_modules
 
   tasks:
     - block: 

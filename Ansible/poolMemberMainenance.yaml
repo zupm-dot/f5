@@ -19,7 +19,6 @@
       validate_certs: no
       server_port: 443
  
-  ##### begin variable declaration #####
   group_vars:
     pool_members:
       partition: Common
@@ -34,7 +33,6 @@
           address: 2.2.2.2
           port: 443
           state: enabled # options: enabled, disabled, forced_offline
-  ##### end variable declaration #####
 
   collections:
     - f5networks.f5_modules

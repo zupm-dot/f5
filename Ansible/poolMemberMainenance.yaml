@@ -14,22 +14,22 @@
   collections:
     - f5networks.f5_modules
 
-  ### ansible-playbook -i inventories/<inventoryFile.yaml> main.yaml --limit <dataCenter> |
 
   ##### begin variable declaration #####
-  vars:
-    partition: Common
-    pool: f5-pool-name
+  group_vars:
     pool_members:
-      - name: pool-member-1
-        address: 1.1.1.1
-        port: 443
-        state: enabled # options: enabled, disabled, forced_offline
+      partition: Common
+      pool: f5-pool-name
+      pool_members:
+        - name: pool-member-1
+          address: 1.1.1.1
+          port: 443
+          state: enabled # options: enabled, disabled, forced_offline
       
-      - name: pool-member-1
-        address: 2.2.2.2
-        port: 443
-        state: enabled # options: enabled, disabled, forced_offline
+        - name: pool-member-1
+          address: 2.2.2.2
+          port: 443
+          state: enabled # options: enabled, disabled, forced_offline
   ##### end variable declaration #####
 
   tasks:

@@ -1,0 +1,47 @@
+scp -p F5OS-A-1.8.0-16036.iso root@<big-ip>/var/imaport/staging
+
+tmsh save /sys config
+tmsh run /cm config-sync to-group <device group> 
+
+tmsh load /sys config verify
+
+for i in <[partition list]>; do tmsh show /ltm pool /$i/* field-fmt | grep "ltm pool\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-pool_pre; done
+for i in <[partition list]>; do tmsh show /ltm virtual /$i/* field-fmt | grep "ltm virtual\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-virtual_pre; done
+
+show system image
+
+show tenants displaylevel 1
+show tenants tenant <tenant> state running-state
+
+config
+tenants tenant <tenaant> config running-state provisioned
+commit
+end
+
+show tenants displaylevel 1
+show tenants tenant <tenant> state running-state
+
+config
+system image set-version iso-version proceed yes
+system image set-version service-version proceed yes
+yes
+
+# host and tenants will reboot after install
+
+show system image
+
+show tenants displaylevel 1
+show tenants tenant <tenant> state running-state
+
+config
+tenants tenant <tenant> config running-state deployed
+commit
+end
+
+show tenants displaylevel 1
+show tenants tenant <tenant> state running-state
+
+for i in <[partition list]>; do tmsh show /ltm pool /$i/* field-fmt | grep "ltm pool\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-pool_post; done
+for i in <[partition list]>; do tmsh show /ltm virtual /$i/* field-fmt | grep "ltm virtual\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-virtual_post; done
+for i in <[partition list]>; do diff -c /shared/tmp/$HOSTNAME-$i-pool_pre  /shared/tmp/$HOSTNAME-$i-pool_post; done
+for i in <[partition list]>; do diff -c /shared/tmp/$HOSTNAME-$i-virtual_pre  /shared/tmp/$HOSTNAME-$i-virtual_post; done

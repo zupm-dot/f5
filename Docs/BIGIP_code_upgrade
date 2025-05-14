@@ -1,0 +1,54 @@
+============
+Code Install
+============
+scp -p <BIGIP ISO>.iso root@c<BIGIP>:/shared/images
+scp -p <BIGIP ISO>.iso.md5 root@<BIGIP>:/shared/images
+md5sum --check /shared/images/<BIGIP ISO>.md5
+cd /config
+grep "Service check date" /config/bigip.license # https://my.f5.com/manage/s/article/K05405424
+tmsh show /sys software image
+tmsh install /sys software image <BIGIP ISO> volume <destination volume> create-volume
+watch -n 5 "tmsh show /sys software status"
+
+==========
+Pre Checks
+==========
+tmsh run /cm config-sync to-group <device group> # From Active only once if needed
+f5mku -K > /shared/tmp/$HOSTNAME.key
+tmsh save /sys ucs /var/local/ucs/$(echo $HOSTNAME | tr '[:upper:]' '[:lower:]')
+scp -p root@<BIGIP ISO>/var/local/ucs/$(echo $HOSTNAME | tr '[:upper:]' '[:lower:]').ucs .
+for i in <[partition list]>; do tmsh show /ltm pool /$i/* field-fmt | grep "ltm pool\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-pool_pre; done
+for i in <[partition list]>; do tmsh show /ltm virtual /$i/* field-fmt | grep "ltm virtual\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-virtual_pre; done
+tmsh save sys config
+
+============
+Code Upgrade
+============
+tmsh save /sys config # From Active only once
+tmsh run /cm config-sync to-group <device group> # From Active only once if needed
+tmsh load /sys config verify
+tmsh run /sys failover offline (on standby)
+tmsh save /sys config
+re-activate license # from GUI if needed
+cpcfg --source=<source volume> <destination volume>
+tmsh reboot volume <destination volume>
+
+**** unit will reboot ****
+
+tmsh show /sys version 
+tmsh run /sys failover online
+tmsh show /cm failover-status
+tmsh save /sys config
+
+============
+Post Checks
+============
+for i in <[partition list]>; do tmsh show /ltm pool /$i/* field-fmt | grep "ltm pool\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-pool_post; done
+for i in <[partition list]>; do tmsh show /ltm virtual /$i/* field-fmt | grep "ltm virtual\|status.availability-state" > /shared/tmp/$HOSTNAME-$i-virtual_post; done
+for i in <[partition list]>; do diff -c /shared/tmp/$HOSTNAME-$i-pool_pre  /shared/tmp/$HOSTNAME-$i-pool_post; done
+for i in <[partition list]>; do diff -c /shared/tmp/$HOSTNAME-$i-virtual_pre  /shared/tmp/$HOSTNAME-$i-virtual_post; done
+tmsh run /sys failover standby (From Active)
+
+# Repeat code upgrade on secondary HA member
+
+tmsh run /cm config-sync force-full-load-push to-group <device group> # from new active once upgrade is complete on HA cluster

@@ -17,14 +17,14 @@
 
   vars:
     # Shared pool configuration
-    pool_name: pool-standard.midwestiso.org-443
+    pool_name: pool-standard.domain.org-443
     pool_members:
-      - name: psuedo-1.midwestiso.org
+      - name: psuedo-1.domain.org
         address: 10.10.10.10
         port: 443
         state: enabled # options: enabled, disabled, forced_offline
 
-      - name: pseudo-2.midwestiso.org
+      - name: pseudo-2.domain.org
         address: 20.20.20.20
         port: 443
         state: enabled # options: enabled, disabled, forced_offline

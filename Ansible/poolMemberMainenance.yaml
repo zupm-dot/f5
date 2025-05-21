@@ -1,69 +1,66 @@
 ---
-- hosts: all
-  gather_facts: false
+- name: Configure F5 Pool Members
+  hosts: all
   connection: local
- 
+  gather_facts: false
+
   vars_prompt:
     - name: ansible_user
-      prompt: Username
+      prompt: "Username"
       private: no
     - name: ansible_password
-      prompt: Password
+      prompt: "Password"
       private: yes
-      
-  vars:
-    provider:
-      user: "{{ ansible_user }}"
-      password: "{{ ansible_password }}"
-      server: "{{ inventory_hostname }}"
-      validate_certs: no
-      server_port: 443
- 
-  group_vars:
-    pool_members:
-      partition: Common
-      pool: f5-pool-name
-      pool_members:
-        - name: pool-member-1
-          address: 1.1.1.1
-          port: 443
-          state: enabled # options: enabled, disabled, forced_offline
-      
-        - name: pool-member-1
-          address: 2.2.2.2
-          port: 443
-          state: enabled # options: enabled, disabled, forced_offline
 
   collections:
     - f5networks.f5_modules
 
+  vars:
+    # Shared pool configuration
+    pool_name: pool-standard.midwestiso.org-443
+    pool_members:
+      - name: psuedo-1.midwestiso.org
+        address: 10.10.10.10
+        port: 443
+        state: enabled # options: enabled, disabled, forced_offline
+
+      - name: pseudo-2.midwestiso.org
+        address: 20.20.20.20
+        port: 443
+        state: enabled # options: enabled, disabled, forced_offline
+
   tasks:
-    - block: 
-      - name: Show Active Status
-        bigip_command:
-          provider: "{{ provider }}"
-          commands: show /cm failover-status
-        register: failover
+    - name: Check Failover Status and Apply Pool Member Config
+      block:
+        - name: Show Active Status
+          bigip_command:
+            provider: "{{ provider }}"
+            commands: show /cm failover-status
+          register: failover
 
-      - name: Active Status Assertion
-        assert:
-          that: "'ACTIVE' in failover.stdout_lines[0][4]"
+        - name: Verify Device is Active
+          assert:
+            that: "'ACTIVE' in failover.stdout_lines[0][4]"
 
-      - name: Enable/Disable/Force Offline F5 Pool Members
-        bigip_pool_member:
-          provider: "{{ provider }}"
-          partition: "{{ partition }}"
-          pool: "{{ pool }}"
-          name: "{{ item.name }}"
-          address: "{{ item.address }}"
-          port: "{{ item.port }}"
-          state: "{{ item.state }}"
-        loop: "{{ pool_members }}"
-      
-      - name: Save Configuration and Sync to Standby
-        bigip_configsync_action:
-          provider: "{{ provider }}"
-          device_group: "{{ sync_group }}"
-          sync_device_to_group: yes
+        - name: Determine Partition Based on Hostname
+          set_fact:
+            partition: "{{ 'AppDev' if 'auth' in inventory_hostname else 'Common' }}"
+
+        - name: Apply F5 Pool Member Configuration
+          bigip_pool_member:
+            provider: "{{ provider }}"
+            partition: "{{ partition }}"
+            pool: "{{ pool_name }}"
+            name: "{{ item.name }}"
+            address: "{{ item.address }}"
+            port: "{{ item.port }}"
+            state: "{{ item.state }}"
+          loop: "{{ pool_members }}"
+
+        - name: Save Configuration and Sync to Standby
+          bigip_configsync_action:
+            provider: "{{ provider }}"
+            device_group: "{{ sync_group }}"
+            sync_device_to_group: yes
 
       delegate_to: localhost

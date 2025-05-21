@@ -1,5 +1,5 @@
 ---
-- name: Configure F5 Pool Members
+- name: Modify F5 Pool Members
   hosts: all
   connection: local
   gather_facts: false

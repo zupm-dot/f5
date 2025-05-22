@@ -1,0 +1,82 @@
+---
+- hosts: all
+  gather_facts: false
+  connection: local
+
+  vars_prompt:
+    - name: ansible_user
+      prompt: Username
+      private: no
+
+    - name: ansible_password
+      prompt: Password
+      private: yes
+
+  vars:
+    # Ensure the following files are present in ./files:
+    # - site_certificate.key
+    # - site_certificate.crt
+    # - ca_certificate.pem
+    service_name: f5.com
+    year: 2030
+    passphrase: ""
+    ca: globalsign
+
+  collections:
+    - f5networks.f5_modules
+
+  tasks:
+    - block:
+        - name: Show Active Status
+          bigip_command:
+            provider: "{{ provider }}"
+            commands: show /cm failover-status
+          register: failover
+
+        - name: Active Status Assertion
+          assert:
+            that:
+              - "'ACTIVE' in failover.stdout_lines[0][4]"
+
+        - name: Determine Partition Based on Hostname
+          set_fact:
+            partition: "{{ 'Common' if 'ext' in inventory_hostname else 'AppDev' }}"
+
+        - name: Import SSL Private Key with passphrase
+          bigip_ssl_key:
+            provider: "{{ provider }}"
+            name: "{{ service_name }}-{{ year }}"
+            content: "{{ lookup('file', './files/site_certificate.key') }}"
+            passphrase: "{{ passphrase }}"
+            partition: "{{ partition }}"
+          when: passphrase | length > 0
+
+        - name: Import SSL Private Key without passphrase
+          bigip_ssl_key:
+            provider: "{{ provider }}"
+            name: "{{ service_name }}-{{ year }}"
+            content: "{{ lookup('file', './files/site_certificate.key') }}"
+            partition: "{{ partition }}"
+          when: passphrase | length == 0
+
+        - name: Import SSL Certificate
+          bigip_ssl_certificate:
+            provider: "{{ provider }}"
+            name: "{{ service_name }}-{{ year }}"
+            content: "{{ lookup('file', './files/site_certificate.crt') }}"
+            partition: "{{ partition }}"
+
+        - name: Import CA Certificate
+          bigip_ssl_certificate:
+            provider: "{{ provider }}"
+            name: "{{ ca }}"
+            content: "{{ lookup('file', './files/ca_certificate.pem') }}"
+            partition: Common
+
+        - name: Save Configuration and Sync to Standby
+          bigip_configsync_action:
+            provider: "{{ provider }}"
+            device_group: "{{ sync_group }}"
+            sync_device_to_group: yes
+
+      delegate_to: localhost

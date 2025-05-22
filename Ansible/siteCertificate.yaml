@@ -17,10 +17,10 @@
     # - site_certificate.key
     # - site_certificate.crt
     # - ca_certificate.pem
-    service_name: f5.com
+    service_name: markets.midwestiso.org
     year: 2026
     passphrase: ""
-    ca: globalsign
+    ca: globalsign-ca-master.midwestiso.org-2028
 
   collections:
     - f5networks.f5_modules
@@ -40,7 +40,10 @@
 
         - name: Determine Partition Based on Hostname
           set_fact:
-            partition: "{{ 'Common' if 'ext' in inventory_hostname else 'AppDev' }}"
+          partition: >-
+            {{ 'AppDev' if 'auth' in inventory_hostname 
+            or 'nonprod' in inventory_hostname 
+              else 'Common' }} 
 
         - name: Import SSL Private Key with passphrase
           bigip_ssl_key:

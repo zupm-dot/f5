@@ -1,0 +1,14 @@
+all:
+  hosts:
+  children:
+    dc1:
+      hosts:
+        f5-1.f5.com.org:
+          data_center: dc1
+          sync_group: dc1-device_group
+          current_image: BIGIP-17.1.2.1-0.0.2.iso
+        
+        f5-2.f5.com.org:
+          data_center: dc1
+          sync_group: dc1-device_group
+          current_image: BIGIP-17.1.2.1-0.0.2.iso

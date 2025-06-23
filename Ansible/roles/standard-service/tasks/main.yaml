@@ -1,0 +1,67 @@
+---
+- block:
+    - name: Show Active Status
+      bigip_command:
+        provider: "{{ provider }}"
+        commands: show /cm failover-status
+      register: failover
+
+    - name: Active Status Assertion
+      assert:
+        that:
+          - "'ACTIVE' in failover.stdout_lines[0][4]"
+    
+    - name: Create HTTP Monitor
+      f5networks.f5_modules.bigip_monitor_http:
+        provider: "{{ provider }}"
+        name: "{{ monitor_name }}"
+        send: "{{ monitor_send }}"
+        receive: "{{ monitor_receive }}"
+        interval: "{{ monitor_interval }}"
+        timeout: "{{ monitor_timeout }}"
+        partition: "{{ partition }}"
+        state: present
+      delegate_to: localhost
+
+    - name: Create pool
+      f5networks.f5_modules.bigip_pool:
+        provider: "{{ provider }}"
+        name: "{{ pool_name }}"
+        lb_method: "{{ pool_lb_method }}"
+        monitors: "{{ pool_monitors }}"
+        partition: "{{ partition }}"
+        state: present
+      delegate_to: localhost
+
+    - name: Add pool members
+      f5networks.f5_modules.bigip_pool_member:
+        provider: "{{ provider }}"
+        pool: "{{ pool_name }}"
+        name: "{{ item.name }}"
+        host: "{{ item.address }}"
+        port: "{{ item.port }}"
+        partition: "{{ partition }}"
+        state: present
+      loop: "{{ pool_members }}"
+      delegate_to: localhost
+
+    - name: Configure virtual server (VIP)
+      f5networks.f5_modules.bigip_virtual_server:
+        provider: "{{ provider }}"
+        name: "{{ vip_name }}"
+        destination: "{{ vip_address }}"
+        port: "{{ vip_port }}"
+        pool: "{{ pool_name }}"
+        profiles: "{{ vip_profiles }}"
+        snat: "{{ vip_snat }}"
+        partition: "{{ partition }}"
+        state: present
+      delegate_to: localhost
+
+    - name: Save Configuration and Sync to Standby
+      bigip_configsync_action:
+        provider: "{{ provider }}"
+        device_group: "{{ sync_group }}"
+        sync_device_to_group: yes
+      
+      delegate_to: localhost

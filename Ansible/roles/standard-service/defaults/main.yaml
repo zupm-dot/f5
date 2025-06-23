@@ -1,0 +1,43 @@
+# Core service identity
+service_name: test-role
+domain: f5.com
+partition: Common
+service_port: 443
+
+# Monitor
+monitor_send: "GET \\r\\n"
+monitor_receive: "200 OK"
+monitor_interval: 5
+monitor_timeout: 16
+
+# Pool
+pool_lb_method: round-robin
+pool_members:
+  - name: web01
+    address: 10.0.0.10
+    port: 80
+  - name: web02
+    address: 10.0.0.11
+    port: 80
+
+# Profiles (name + context)
+vip_profiles:
+  - { name: /Common/http, context: all }
+  - { name: /Common/clientssl, context: client-side }
+  - { name: /Common/serverssl, context: server-side }
+  - { name: "/Common/tcp-wan-optimized", context: client-side } # Default - Do not change unless necessaary
+  - { name: "/Common/tcp-lan-optimized", context: server-side } # Default - Do not change unless necessaary
+
+# VIP settings
+vip_address: 192.168.1.200
+
+###### REFERENCED VARS - DO NOT CHANGE ######
+monitor_name: "mon-{{ service_name }}.{{ domain }}"
+monitor_partition: "{{ partition }}"
+pool_name: "pool-{{ service_name }}.{{ domain }}-{{ service_port }}"
+pool_monitors:
+  - "{{ monitor_name }}"
+vip_name: "vs-{{ service_name }}-{{ domain }}-{{ service_port }}"
+vip_port: "{{ service_port }}"
+vip_snat: Automap
+vip_partition: "{{ partition }}"

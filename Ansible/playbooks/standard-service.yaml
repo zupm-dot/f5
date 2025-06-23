@@ -1,0 +1,16 @@
+---
+- hosts: all
+  gather_facts: false
+  connection: local
+
+  vars_prompt:
+    - name: ansible_user
+      prompt: Username
+      private: no
+
+    - name: ansible_password
+      prompt: Password
+      private: yes
+
+  roles:
+    - standard-service.midwestiso.org
